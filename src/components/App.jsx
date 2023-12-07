@@ -1,65 +1,104 @@
 import React from "react"
-import { StyledTitle } from "./ContactForm/ContactForm.styled"
-import { Filter } from "./Filter/Filter";
-import { ContactList } from "./ContactList/ContactList";
-import { nanoid } from "nanoid";
-import { ContactForm } from "./ContactForm/ContactForm";
+import { Searchbar } from "./Searchbar/Searchbar";
+import { ImageGallery } from "./ImageGallery/ImageGallery";
+import { Button } from "./Button/Button";
+import { Loader } from "./Loader/Loader";
+import { Modal } from "./Modal/Modal";
+import { fetchImagesByQuery } from "services/api";
 
 export class App extends React.Component {
   state = {
-    contacts: [],
-    filter: '',
-  }
-  
-  handleAddContact = ({ name, number }) => {
-    if (this.state.contacts.find(contact => contact.name === name)) {
-      window.alert(`${name} is already in contacts`)
-      return
-    }
-    const newContact = { id: nanoid(), name, number, }
-    
-    this.setState((prevState) => ({
-      contacts: [...prevState.contacts, newContact]
-    }))
+    images: [],
+    q: '',
+    page: 1,
+    per_page: 12,
+    totalHits: null,
+    loading: false,
+		error: null,
   }
 
-  handleChangeFilter = e => {
-    this.setState({ filter: e.target.value })
-	}
-
-  handleDeleteContact = id => {
-		this.setState(prevState => ({ contacts: prevState.contacts.filter(user => user.id !== id) }))
+  async componentDidMount() {
+		try {
+			this.setState({ loading: true, error: null })
+			// Робимо запит, отримуємо пости
+			const { hits, totalHits } = await fetchImagesByQuery()
+			// Записуємо пости в стейт
+			this.setState({ images: hits, totalHits })
+		} catch (error) {
+			console.log(error.message)
+			this.setState({ error: error.message })
+		} finally {
+			this.setState({ loading: false })
+		}
   }
   
-  getFilteredData = () => {
-		return this.state.contacts
-			.filter( contact => contact.name.toLowerCase().includes(this.state.filter.toLowerCase()) 
-			)
+async componentDidUpdate(_, prevState) {
+		if (!this.state.q && prevState.page !== this.state.page) {
+			try {
+				this.setState({ loading: true, error: null })
+				// Робимо запит, отримуємо пости
+				const { hits, totalHits } = await fetchImagesByQuery({ page: this.state.page })
+				// Записуємо пости в стейт
+				this.setState(prevState => ({ images: [...prevState.images, ...hits], totalHits }))
+			} catch (error) {
+				console.log(error.message)
+			} finally {
+				this.setState({ loading: false })
+			}
+		}
+
+		if (
+			(this.state.q && prevState.q !== this.state.q) ||
+			(this.state.q && prevState.page !== this.state.page)
+		) {
+			try {
+				this.setState({ loading: true, error: null })
+
+				// Робимо запит, отримуємо пости
+				const { hits, totalHits  } = await fetchImagesByQuery({ page: this.state.page, q: this.state.q })
+				// Записуємо пости в стейт
+				this.setState(prevState => ({ images: [...prevState.images, ...hits], totalHits }))
+			} catch (error) {
+				console.log(error.message)
+			} finally {
+				this.setState({ loading: false })
+			}
+		}
 	}
+
+  handleLoadMore = () => {
+    this.setState(prevState => ({ page: prevState.page + 1 }))
+    console.log(this.state.page);
+	}
+
+	handleSetSearchQuery = text => {
+		this.setState({ q: text, images: [], page: 1 })
+  }
+   
+  handleSubmit = e => {
+		e.preventDefault()
+		console.log(this.state)
+		console.log(e.target.input.value)
+		this.setState({ q: e.target.input.value })
+	}
+
   
   render() {
+
+    const {images} = this.state
     
   return (
-    <div
-      style={{
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        fontSize: 20,
-        color: '#010101'
-      }}
-    >
+    <div className="App">
 
-      <StyledTitle>Phonebook</StyledTitle>
-      <ContactForm handleAddContact={this.handleAddContact}
-       />
+      <Searchbar onSubmit={this.handleSubmit}/>
 
-      <h2>Contacts</h2>
-      <Filter handleChangeFilter={ this.handleChangeFilter} />
-      <ContactList
-        contacts={this.getFilteredData()}
-        onDeleteContact={this.handleDeleteContact} />
+      <ImageGallery images={images} />
+      
+      <Loader />
+
+      <Button onClick={this.handleLoadMore}/>
+
+      <Modal images={images} />
       
     </div>
   )}
