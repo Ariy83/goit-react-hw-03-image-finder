@@ -45,27 +45,12 @@ export class App extends React.Component {
   
 	async componentDidUpdate(_, prevState, snapshot) {
 		if (snapshot && prevState.images.length) {
-      console.log(snapshot);
-      const scrollPosition = this.myRef.current.offsetTop;
-      window.scrollTo({
-        top: scrollPosition - 1000,
-        behavior: "smooth",
-      });
-    }
-		if (!this.state.q && prevState.page !== this.state.page) {
-			try {
-				this.setState({ loading: true, error: null })
-
-				const { hits, totalHits } = await fetchImagesByQuery({ page: this.state.page })
-
-				this.setState(prevState => ({ images: [...prevState.images, ...hits], totalHits }))
-			} catch (error) {
-				Report.failure( error )
-			} finally {
-				this.setState({ loading: false })
-			}
+			const scrollPosition = this.myRef.current.offsetTop;
+			window.scrollTo({
+				top: scrollPosition - 1200,
+				behavior: "smooth",
+			})
 		}
-
 		if (
 			(this.state.q && prevState.q !== this.state.q) ||
 			(this.state.q && prevState.page !== this.state.page)
@@ -96,7 +81,6 @@ export class App extends React.Component {
 
 	handleOpenModal = ( image ) => {
 		this.setState({currentImage: image})
-		// this.setState({currentImage:this.state.images.find(image=>target.src===image.webformatURL)})
 		this.setState(prevState => ({ isOpenModal: !prevState.isOpenModal }))
 	}
 
