@@ -20,6 +20,16 @@ export class App extends React.Component {
 		error: null,
 	}
 
+	myRef = React.createRef();
+
+	getSnapshotBeforeUpdate(_, prevState) {
+		if (prevState.images.length !== this.state.images.length) {
+			const scrollPosition = this.myRef.current.offsetTop;
+			return { scrollPosition };
+		}
+		return null;
+	}
+
 	async componentDidMount() {
 		try {
 			this.setState({ loading: true, error: null })
@@ -33,7 +43,15 @@ export class App extends React.Component {
 		}
 	}
   
-	async componentDidUpdate(_, prevState) {
+	async componentDidUpdate(_, prevState, snapshot) {
+		if (snapshot && prevState.images.length) {
+      console.log(snapshot);
+      const scrollPosition = this.myRef.current.offsetTop;
+      window.scrollTo({
+        top: scrollPosition - 1000,
+        behavior: "smooth",
+      });
+    }
 		if (!this.state.q && prevState.page !== this.state.page) {
 			try {
 				this.setState({ loading: true, error: null })
@@ -73,10 +91,12 @@ export class App extends React.Component {
 	handleSubmit = e => {
 		e.preventDefault()
 		this.setState({ q: e.target.elements.search.value, images: [], page: 1 })
+		e.target.reset()
 	}
 
-	handleOpenModal = ({ target }) => {
-		this.setState({currentImage:this.state.images.find(image=>target.src===image.webformatURL)})
+	handleOpenModal = ( image ) => {
+		this.setState({currentImage: image})
+		// this.setState({currentImage:this.state.images.find(image=>target.src===image.webformatURL)})
 		this.setState(prevState => ({ isOpenModal: !prevState.isOpenModal }))
 	}
 
@@ -86,7 +106,7 @@ export class App extends React.Component {
 	
 	
 	render() {
-		const { images, currentImage, totalHits, isOpenModal, loading, error } = this.state
+		const { images, currentImage, totalHits, isOpenModal, q,loading, error } = this.state
 		
 		return (
 			<div className="App">
@@ -94,6 +114,10 @@ export class App extends React.Component {
 				
 				<ImageGallery openModal={this.handleOpenModal} images={images}
 				/>
+
+				{!error && q && !loading && !images.length && <h1>Your query is not available</h1>}
+
+
 				{error && <h1>Server is dead, try again later</h1>}
 				
 				{loading && !images.length && (
@@ -105,6 +129,8 @@ export class App extends React.Component {
 				) : null}
 				
 				{isOpenModal && <Modal image={currentImage} closeModal={this.handleToggleModal} />}
+
+				<div style={{ visibility: "hidden" }} ref={this.myRef}></div>
       
     </div>
   )}

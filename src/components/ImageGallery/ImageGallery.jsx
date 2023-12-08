@@ -4,12 +4,12 @@ import React from 'react'
 export const ImageGallery = ({images=[], openModal}) => {
   return (
       <ul className="ImageGallery">
-          {images.map(image => (
-            <ImageGalleryItem key={image.id}
+          {images.map((image,index) => (
+            <ImageGalleryItem key={index}
               // {...image}
               webformatURL={image.webformatURL}
               tags={image.tags}
-              openModal={openModal}
+              openModal={() =>openModal(image)}
               >
             </ImageGalleryItem>
 			))}
