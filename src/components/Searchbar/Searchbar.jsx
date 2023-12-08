@@ -10,6 +10,7 @@ export const Searchbar = ({onSubmit}) => {
 
         <input
           className="SearchForm-input"
+          name='search'
           type="text"
           autoComplete="off"
           autoFocus

@@ -5,43 +5,44 @@ import { Button } from "./Button/Button";
 import { Loader } from "./Loader/Loader";
 import { Modal } from "./Modal/Modal";
 import { fetchImagesByQuery } from "services/api";
+import { Report } from "notiflix";
 
 export class App extends React.Component {
-  state = {
-    images: [],
-    q: '',
-    page: 1,
-    per_page: 12,
-    totalHits: null,
-    loading: false,
+	state = {
+		images: [],
+		q: '',
+		page: 1,
+		per_page: 12,
+		totalHits: null,
+		isOpenModal: false,
+		currentImage: null,
+		loading: false,
 		error: null,
-  }
+	}
 
-  async componentDidMount() {
+	async componentDidMount() {
 		try {
 			this.setState({ loading: true, error: null })
-			// Робимо запит, отримуємо пости
-			const { hits, totalHits } = await fetchImagesByQuery()
-			// Записуємо пости в стейт
-			this.setState({ images: hits, totalHits })
+			// const { hits, totalHits } = await fetchImagesByQuery()
+			// this.setState({ images: hits, totalHits })
 		} catch (error) {
-			console.log(error.message)
 			this.setState({ error: error.message })
+			Report.failure( error )
 		} finally {
 			this.setState({ loading: false })
 		}
-  }
+	}
   
-async componentDidUpdate(_, prevState) {
+	async componentDidUpdate(_, prevState) {
 		if (!this.state.q && prevState.page !== this.state.page) {
 			try {
 				this.setState({ loading: true, error: null })
-				// Робимо запит, отримуємо пости
+
 				const { hits, totalHits } = await fetchImagesByQuery({ page: this.state.page })
-				// Записуємо пости в стейт
+
 				this.setState(prevState => ({ images: [...prevState.images, ...hits], totalHits }))
 			} catch (error) {
-				console.log(error.message)
+				Report.failure( error )
 			} finally {
 				this.setState({ loading: false })
 			}
@@ -54,51 +55,56 @@ async componentDidUpdate(_, prevState) {
 			try {
 				this.setState({ loading: true, error: null })
 
-				// Робимо запит, отримуємо пости
 				const { hits, totalHits  } = await fetchImagesByQuery({ page: this.state.page, q: this.state.q })
-				// Записуємо пости в стейт
+
 				this.setState(prevState => ({ images: [...prevState.images, ...hits], totalHits }))
 			} catch (error) {
-				console.log(error.message)
+				Report.failure( error )
 			} finally {
 				this.setState({ loading: false })
 			}
 		}
 	}
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }))
-    console.log(this.state.page);
+	handleLoadMore = () => {
+	  this.setState(prevState => ({ page: prevState.page + 1 }))
 	}
 
-	handleSetSearchQuery = text => {
-		this.setState({ q: text, images: [], page: 1 })
-  }
-   
-  handleSubmit = e => {
+	handleSubmit = e => {
 		e.preventDefault()
-		console.log(this.state)
-		console.log(e.target.input.value)
-		this.setState({ q: e.target.input.value })
+		this.setState({ q: e.target.elements.search.value, images: [], page: 1 })
 	}
 
-  
-  render() {
+	handleOpenModal = ({ target }) => {
+		this.setState({currentImage:this.state.images.find(image=>target.src===image.webformatURL)})
+		this.setState(prevState => ({ isOpenModal: !prevState.isOpenModal }))
+	}
 
-    const {images} = this.state
-    
-  return (
-    <div className="App">
-
-      <Searchbar onSubmit={this.handleSubmit}/>
-
-      <ImageGallery images={images} />
-      
-      <Loader />
-
-      <Button onClick={this.handleLoadMore}/>
-
-      <Modal images={images} />
+	handleToggleModal = () => {
+		this.setState(prevState => ({ isOpenModal: !prevState.isOpenModal }))
+	}
+	
+	
+	render() {
+		const { images, currentImage, totalHits, isOpenModal, loading, error } = this.state
+		
+		return (
+			<div className="App">
+				<Searchbar onSubmit={this.handleSubmit} />
+				
+				<ImageGallery openModal={this.handleOpenModal} images={images}
+				/>
+				{error && <h1>Server is dead, try again later</h1>}
+				
+				{loading && !images.length && (
+					<Loader />
+				)}
+				
+				{images.length && images.length < totalHits ? (
+					<Button handleLoadMore={this.handleLoadMore} loading={loading} />
+				) : null}
+				
+				{isOpenModal && <Modal image={currentImage} closeModal={this.handleToggleModal} />}
       
     </div>
   )}
